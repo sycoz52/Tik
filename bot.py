@@ -13,10 +13,10 @@ from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQu
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# توكن البوت - خلي بالك تبقى حاططه في Railway Variables
+# توكن البوت
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# إحصائيات بسيطة
+# إحصائيات
 STATS_FILE = "stats.json"
 
 def load_stats():
@@ -35,12 +35,9 @@ def save_stats(stats):
 
 stats = load_stats()
 
-# =============== دوال التحميل من TikWM (API مضمون) ===============
-
-def get_tiktok_info(url):
-    """جلب معلومات الفيديو من تيك توك"""
+# دوال التحميل من TikWM API
+def get_video_info(url):
     try:
-        # استخدام TikWM API - شغال وقوي
         api_url = "https://tikwm.com/api/"
         response = requests.get(api_url, params={"url": url}, timeout=30)
         
@@ -49,32 +46,23 @@ def get_tiktok_info(url):
             
             if data.get('code') == 0:
                 video_data = data['data']
-                
-                # رابط الفيديو بدون علامة مائية
-                video_url = video_data.get('play')
-                
-                # رابط الصوت
-                audio_url = video_data.get('music')
-                
-                # عنوان الفيديو
                 title = video_data.get('title', 'TikTok Video')
                 title = re.sub(r'[\\/*?:"<>|]', "", title)[:50]
                 
                 return {
                     'success': True,
                     'title': title,
-                    'video_url': video_url,
-                    'audio_url': audio_url
+                    'video_url': video_data.get('play'),
+                    'audio_url': video_data.get('music')
                 }
         
         return {'success': False}
         
     except Exception as e:
-        logger.error(f"Error getting info: {e}")
+        logger.error(f"Error: {e}")
         return {'success': False}
 
 def download_file(url, filename):
-    """تحميل الملف من الرابط"""
     try:
         temp_dir = tempfile.gettempdir()
         file_path = os.path.join(temp_dir, filename)
@@ -91,8 +79,7 @@ def download_file(url, filename):
         logger.error(f"Download error: {e}")
         return None
 
-# =============== أوامر البوت ===============
-
+# دوال البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     first_name = user.first_name if user.first_name else "يا باشا"
@@ -158,12 +145,9 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         del context.user_data['url']
     await update.message.reply_text("✅ تم إلغاء العملية")
 
-# =============== معالجة الرسائل ===============
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     
-    # البحث عن رابط تيك توك
     match = re.search(r'(https?://)?(vm\.|vt\.|www\.|m\.)?tiktok\.com/\S+', text)
     if not match:
         await update.message.reply_text("❌ أرسل رابط تيك توك صحيح")
@@ -201,14 +185,11 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         status_msg = await query.message.edit_text(f"⏳ جاري تحميل {'الفيديو' if download_type == 'video' else 'الصوت'}...")
         await process_download(query.message, status_msg, url, download_type)
 
-# =============== عملية التحميل الأساسية ===============
-
 async def process_download(message, status_msg, url, download_type):
     global stats
     
     try:
-        # جلب معلومات الفيديو
-        info = get_tiktok_info(url)
+        info = get_video_info(url)
         
         if not info['success']:
             stats['failed'] += 1
@@ -220,10 +201,6 @@ async def process_download(message, status_msg, url, download_type):
         save_stats(stats)
         
         if download_type == 'video':
-            if not info['video_url']:
-                await status_msg.edit_text("❌ لا يوجد رابط فيديو")
-                return
-                
             await status_msg.edit_text("📥 جاري تحميل الفيديو...")
             file_path = download_file(info['video_url'], f"{info['title']}_video.mp4")
             
@@ -233,22 +210,14 @@ async def process_download(message, status_msg, url, download_type):
                 await status_msg.delete()
                 
                 with open(file_path, 'rb') as f:
-                    await message.reply_video(
-                        video=f, 
-                        caption=f"✅ تم التحميل بنجاح!\n🎬 {info['title']}",
-                        timeout=120
-                    )
+                    await message.reply_video(video=f, caption=f"✅ تم التحميل بنجاح!\n🎬 {info['title']}")
                 os.remove(file_path)
             else:
                 stats['failed'] += 1
                 save_stats(stats)
-                await status_msg.edit_text("❌ فشل تحميل الفيديو")
+                await status_msg.edit_text("❌ فشل التحميل")
         
-        else:  # audio
-            if not info['audio_url']:
-                await status_msg.edit_text("❌ لا يوجد رابط للصوت")
-                return
-                
+        else:
             await status_msg.edit_text("📥 جاري تحميل الصوت...")
             file_path = download_file(info['audio_url'], f"{info['title']}_audio.mp3")
             
@@ -258,36 +227,28 @@ async def process_download(message, status_msg, url, download_type):
                 await status_msg.delete()
                 
                 with open(file_path, 'rb') as f:
-                    await message.reply_audio(
-                        audio=f, 
-                        title=info['title'], 
-                        performer="TikTok",
-                        timeout=120
-                    )
+                    await message.reply_audio(audio=f, title=info['title'], performer="TikTok")
                 os.remove(file_path)
             else:
                 stats['failed'] += 1
                 save_stats(stats)
-                await status_msg.edit_text("❌ فشل تحميل الصوت")
+                await status_msg.edit_text("❌ فشل التحميل")
     
     except Exception as e:
-        logger.error(f"Error in process_download: {e}")
+        logger.error(f"Error: {e}")
         stats['failed'] += 1
         save_stats(stats)
         await status_msg.edit_text(f"⚠️ حدث خطأ: {str(e)[:50]}")
 
-# =============== تشغيل البوت ===============
-
 def main():
-    print("🚀 تشغيل بوت تحميل تيك توك...")
+    print("🚀 تشغيل البوت...")
     
     if not BOT_TOKEN:
-        print("❌ خطأ: BOT_TOKEN غير موجود! ضيفه في Environment Variables")
+        print("❌ خطأ: BOT_TOKEN غير موجود!")
         return
     
     app = Application.builder().token(BOT_TOKEN).build()
     
-    # إضافة المعالجات
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("about", about_command))
@@ -296,9 +257,7 @@ def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
     
-    print("✅ البوت جاهز ويعمل!")
-    print("💡 أرسل /start في البوت على تليجرام")
-    
+    print("✅ البوت جاهز!")
     app.run_polling()
 
 if __name__ == "__main__":
