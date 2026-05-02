@@ -32,7 +32,7 @@ def save_stats(stats):
 
 stats = load_stats()
 
-# توكن البوت - خلي بالك تحطه في متغير بيئة
+# توكن البوت
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # دوال التحميل
@@ -42,11 +42,11 @@ def get_video_info(url):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
+            'impersonate': 'chrome-131',  # دي الإضافة عشان التحميل من غير علامة مائية
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
             
-            # جلب رابط الفيديو بدون صوت (أفضل جودة)
             video_url = None
             audio_url = None
             
@@ -59,7 +59,6 @@ def get_video_info(url):
                         if audio_url is None:
                             audio_url = f['url']
             
-            # لو ملقتش, خد أي رابط
             if not video_url:
                 video_url = info.get('url')
             if not audio_url:
@@ -95,8 +94,11 @@ def download_file(url, filename):
 
 # دوال البوت
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    welcome_text = """
-🎬 **مرحباً بك في بوت تحميل تيك توك!**
+    user = update.effective_user
+    first_name = user.first_name if user.first_name else "يا باشا"
+    
+    welcome_text = f"""
+🎬 **مرحباً بك {first_name}!**
 
 أرسل رابط فيديو من تيك توك وسأقوم بتحميله لك.
 يمكنك اختيار تحميل الفيديو أو الصوت فقط.
@@ -108,7 +110,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /stat - عرض الإحصائيات
 /cancel - إلغاء العملية
 
-✅ البوت يعمل 24 ساعة!
+✨ **بوت تحميل تيك توك**
+برعاية أياد
 """
     await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
@@ -123,7 +126,6 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 ⚠️ **ملاحظات:**
 - الفيديو الخاص لا يمكن تحميله
 - الحد الأقصى لحجم الملف حسب تليجرام (50 ميجا للفيديو)
-- البوت يعمل 24/7 دون توقف
 """
     await update.message.reply_text(help_text, parse_mode='Markdown')
 
@@ -133,6 +135,9 @@ async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 الإصدار: 2.0
 النوع: بوت تحميل تيك توك
 الحالة: يعمل بكفاءة 🟢
+
+**بوت تحميل تيك توك**
+برعاية أياد
 """
     await update.message.reply_text(about_text, parse_mode='Markdown')
 
@@ -190,7 +195,6 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         download_type = parts[0]
         url = parts[1]
         
-        # رسالة مؤقتة للحالة
         status_msg = await query.message.edit_text(f"⏳ جاري تحميل {'الفيديو' if download_type == 'video' else 'الصوت'}...")
         await process_download(update, query.message, status_msg, url, download_type, context)
 
@@ -215,7 +219,7 @@ async def process_download(update, message, status_msg, url, download_type, cont
             
             if file_path and os.path.exists(file_path):
                 file_size = os.path.getsize(file_path)
-                if file_size > 50 * 1024 * 1024:  # 50 MB
+                if file_size > 50 * 1024 * 1024:
                     await status_msg.edit_text("❌ الفيديو أكبر من 50 ميجا - لا يمكن رفعه للتليجرام")
                     os.remove(file_path)
                     stats['failed'] += 1
@@ -238,7 +242,7 @@ async def process_download(update, message, status_msg, url, download_type, cont
                 save_stats(stats)
                 await status_msg.edit_text("❌ فشل التحميل")
         
-        else:  # audio
+        else:
             await status_msg.edit_text("📥 جاري تحميل الصوت...")
             file_path = download_file(info['audio_url'], f"{info['title']}_audio.mp3")
             
@@ -267,7 +271,7 @@ async def process_download(update, message, status_msg, url, download_type, cont
         await status_msg.edit_text("⚠️ حدث خطأ، حاول مرة أخرى")
 
 def main():
-    print("🚀 تشغيل البوت على Koyeb...")
+    print("🚀 تشغيل البوت...")
     
     if not BOT_TOKEN:
         print("❌ خطأ: BOT_TOKEN غير موجود!")
