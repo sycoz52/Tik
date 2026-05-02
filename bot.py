@@ -42,7 +42,7 @@ def get_video_info(url):
             'quiet': True,
             'no_warnings': True,
             'extract_flat': False,
-            'impersonate': 'chrome-131',  # دي الإضافة عشان التحميل من غير علامة مائية
+            'impersonate': 'chrome-131',  # عشان التحميل من غير علامة مائية
         }
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(url, download=False)
