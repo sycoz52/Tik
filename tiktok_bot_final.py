@@ -74,21 +74,109 @@ def download_file(url, filename):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     first_name = user.first_name if user.first_name else "يا باشا"
-    await update.message.reply_text(f"""
-🎬 مرحباً بك {first_name}!
+    username = f"@{user.username}" if user.username else "مستخدم"
+    
+    welcome_text = f"""
+╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃     
+┃   🎬 **مرحباً بك {first_name}!** 🎬
+┃   
+┃   {username} أهلاً بك في **بوت تحميل تيك توك**
+┃   
+┃   📌 **مهمتي:**  
+┃   تحميل فيديوهات وصوتيات تيك توك بدون علامة مائية  
+┃   
+┃   📋 **الأوامر المتاحة:**  
+┃   • /start - بدء البوت وترحيب  
+┃   • /help - شرح الاستخدام  
+┃   • /about - معلومات عن البوت  
+┃   • /stat - إحصائيات التحميلات  
+┃   • /cancel - إلغاء العملية  
+┃   
+┃   ⚡ **طريقة الاستخدام:**  
+┃   1️⃣ أرسل رابط فيديو تيك توك  
+┃   2️⃣ اختر تحميل فيديو 🎬 أو صوت 🎵  
+┃   3️⃣ انتظر قليلاً وسيتم الإرسال  
+┃   
+┃   ✅ **مميزات البوت:**  
+┃   • تحميل بجودة عالية  
+┃   • بدون علامة مائية  
+┃   • دعم الفيديو والصوت  
+┃   • سرعة في التحميل  
+┃   
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
 
-أرسل رابط فيديو من تيك توك وسأقوم بتحميله لك.
-
-📌 الأوامر:
-/start - ترحيب
-/help - مساعدة
-
-✨ بوت تحميل تيك توك
-برعاية أياد
-""")
+✨ **بوت تحميل تيك توك**  
+🏢 برعاية **أياد**
+"""
+    await update.message.reply_text(welcome_text, parse_mode='Markdown')
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🔧 أرسل رابط تيك توك، اختر فيديو أو صوت، وسأقوم بتحميله.")
+    user = update.effective_user
+    first_name = user.first_name if user.first_name else "يا باشا"
+    
+    help_text = f"""
+╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃   🔧 **طريقة الاستخدام يا {first_name}**  
+┃   
+┃   1️⃣ اذهب إلى تيك توك وانسخ رابط الفيديو  
+┃   2️⃣ ارسل الرابط هنا في الشات  
+┃   3️⃣ اختر نوع التحميل:  
+┃      🎬 فيديو | 🎵 صوت  
+┃   4️⃣ انتظر ثواني وسيتم التحميل  
+┃   
+┃   💡 **ملاحظات مهمة:**  
+┃   • الفيديو الخاص لا يمكن تحميله  
+┃   • الحد الأقصى 50 ميجا للفيديو  
+┃   • التحميل بدون علامة مائية  
+┃   
+┃   🆘 لأي مشكلة تواصل مع المطور  
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+"""
+    await update.message.reply_text(help_text, parse_mode='Markdown')
+
+async def about_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    about_text = """
+╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃   ℹ️ **معلومات عن البوت**  
+┃   
+┃   📛 الاسم: بوت تحميل تيك توك  
+┃   🔢 الإصدار: 3.0  
+┃   🛠️ النوع: تحميل فيديوهات وصوتيات  
+┃   📡 الحالة: يعمل بكفاءة 🟢  
+┃   🖥️ السيرفرات: 2 سيرفر بديل  
+┃   
+┃   🚀 **المميزات:**  
+┃   • سرعة فائقة في التحميل  
+┃   • دعم جميع روابط تيك توك  
+┃   • تحميل بدون علامة مائية  
+┃   • واجهة سهلة وبسيطة  
+┃   
+┃   📅 تاريخ الإنشاء: 2026  
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+"""
+    await update.message.reply_text(about_text, parse_mode='Markdown')
+
+async def stat_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global stats
+    stat_text = f"""
+╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮
+┃   📊 **إحصائيات البوت**  
+┃   
+┃   📥 إجمالي التحميلات: `{stats['total']}`  
+┃   🎬 فيديوهات: `{stats['video']}`  
+┃   🎵 صوتيات: `{stats['audio']}`  
+┃   ❌ فاشل: `{stats['failed']}`  
+┃   
+┃   ✅成功率: `{round((stats['total'] - stats['failed']) / max(stats['total'], 1) * 100)}%`  
+╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯
+"""
+    await update.message.reply_text(stat_text, parse_mode='Markdown')
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if 'current_url' in context.user_data:
+        del context.user_data['current_url']
+    await update.message.reply_text("✅ تم إلغاء العملية")
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
@@ -105,7 +193,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🎵 صوت", callback_data="audio")],
         [InlineKeyboardButton("❌ إلغاء", callback_data="cancel")]
     ]
-    await update.message.reply_text("✅ تم استلام الرابط!\nاختر نوع التحميل:", reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.message.reply_text(
+        "✅ تم استلام الرابط!\nاختر نوع التحميل:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -136,7 +227,7 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.delete()
         with open(file_path, 'rb') as f:
             if download_type == 'video':
-                await query.message.reply_video(video=f, caption=f"✅ تم التحميل!\n🎬 {info['title']}")
+                await query.message.reply_video(video=f, caption=f"✅ تم التحميل بنجاح!\n🎬 {info['title']}")
             else:
                 await query.message.reply_audio(audio=f, title=info['title'], performer="TikTok")
         os.remove(file_path)
@@ -144,16 +235,23 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await status_msg.edit_text("❌ فشل التحميل")
 
 def main():
-    print("🚀 تشغيل البوت...")
+    print("🚀 تشغيل بوت تحميل تيك توك...")
+    print("🤖 البوت يعمل بكفاءة")
+    
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN غير موجود!")
         return
+    
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("about", about_command))
+    app.add_handler(CommandHandler("stat", stat_command))
+    app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
     app.add_handler(CallbackQueryHandler(button_callback))
-    print("✅ البوت جاهز!")
+    
+    print("✅ البوت جاهز ويعمل!")
     app.run_polling()
 
 if __name__ == "__main__":
